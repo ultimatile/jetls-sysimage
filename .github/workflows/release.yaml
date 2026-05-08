@@ -1,0 +1,32 @@
+---
+name: Release
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 17 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  release-linux-x64:
+    name: Release linux-x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.12'
+
+      - name: Build and upload sysimage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLATFORM_TAG: linux-x64
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ./scripts/release.sh -f
+          else
+            ./scripts/release.sh
+          fi
