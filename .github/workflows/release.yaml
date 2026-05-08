@@ -30,3 +30,15 @@ jobs:
           else
             ./scripts/release.sh
           fi
+
+      - name: Smoke test the published asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          VERSION=$(gh release view --repo aviatesk/JETLS.jl --json tagName -q .tagName)
+          ASSET="jetls-sysimage-${VERSION}-linux-x64.zip"
+          TMP=$(mktemp -d)
+          gh release download "$VERSION" --pattern "$ASSET" --dir "$TMP"
+          (cd "$TMP" && unzip -q "$ASSET")
+          "$TMP/jetls-sysimage-${VERSION}-linux-x64/bin/jetls" --version
