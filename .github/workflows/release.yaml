@@ -3,8 +3,16 @@ name: Release
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 17 * * *'
+    inputs:
+      version:
+        description: 'JETLS.jl tag to build (defaults to upstream latest)'
+        required: false
+        type: string
+      force:
+        description: 'Rebuild even if the asset already exists'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -32,8 +40,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PLATFORM_TAG: ${{ matrix.tag }}
+          VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ inputs.force }}" == "true" ]]; then
             ./scripts/release.sh -f
           else
             ./scripts/release.sh
