@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'JETLS.jl tag to build (defaults to upstream latest)'
+        description: 'JETLS.jl tag to build (defaults to UPSTREAM_VERSION)'
         required: false
         type: string
       force:
@@ -13,6 +13,10 @@ on:
         required: false
         type: boolean
         default: false
+  push:
+    branches: [main]
+    paths:
+      - UPSTREAM_VERSION
 
 permissions:
   contents: write
@@ -52,9 +56,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PLATFORM_TAG: ${{ matrix.tag }}
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
           set -eu
-          VERSION=$(gh release view --repo aviatesk/JETLS.jl --json tagName -q .tagName)
+          VERSION=${VERSION_INPUT:-$(tr -d '[:space:]' < UPSTREAM_VERSION)}
           ASSET="jetls-sysimage-${VERSION}-${PLATFORM_TAG}.zip"
           TMP=$(mktemp -d)
           gh release download "$VERSION" --pattern "$ASSET" --dir "$TMP"

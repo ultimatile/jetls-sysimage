@@ -11,8 +11,15 @@ done
 VERSION=${VERSION:-""}
 PLATFORM_TAG=${PLATFORM_TAG:-linux-x64}
 
+# Default: read the pinned upstream tag committed in the repo
+# (renovate keeps this file in sync with aviatesk/JETLS.jl releases).
+# Fall back to upstream's latest if the file is missing.
 if [[ -z "$VERSION" ]]; then
-    VERSION=$(gh release view --repo aviatesk/JETLS.jl --json tagName -q .tagName)
+    if [[ -f UPSTREAM_VERSION ]]; then
+        VERSION=$(tr -d '[:space:]' < UPSTREAM_VERSION)
+    else
+        VERSION=$(gh release view --repo aviatesk/JETLS.jl --json tagName -q .tagName)
+    fi
 fi
 
 ASSET_NAME="jetls-sysimage-${VERSION}-${PLATFORM_TAG}.zip"
