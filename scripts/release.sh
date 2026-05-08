@@ -31,7 +31,12 @@ if [[ $FORCE -eq 0 ]]; then
     fi
 fi
 
-WORK=$(mktemp -d)
+# Use a relative path so bash and Julia (which on Windows is a native
+# binary that does not share Git Bash's /tmp mapping) resolve to the
+# same physical location.
+WORK="build"
+rm -rf "$WORK"
+mkdir -p "$WORK"
 trap 'rm -rf "$WORK"' EXIT
 
 SRC_DIR="$WORK/jetls-src"
@@ -75,7 +80,8 @@ cp "$SYSIMG_PATH" "$STAGE/lib/$SYSIMG_NAME"
 cp "$SNAP_DIR/Project.toml" "$SNAP_DIR/Manifest.toml" "$STAGE/share/jetls/"
 
 ZIP="$WORK/$ASSET_NAME"
-(cd "$STAGE" && zip -r "$ZIP" .)
+ZIP_ABS="$PWD/$ZIP"
+(cd "$STAGE" && zip -r "$ZIP_ABS" .)
 
 if [[ -n "${GITHUB_ACTOR:-}" ]]; then
     git config --local user.email "${GITHUB_ACTOR}@users.noreply.github.com"
