@@ -49,8 +49,7 @@ using PackageCompiler
 create_sysimage([:JETLS]; sysimage_path=\"$SYSIMG_PATH\")
 "
 
-STAGE_NAME="jetls-sysimage-${VERSION}-${PLATFORM_TAG}"
-STAGE="$WORK/$STAGE_NAME"
+STAGE="$WORK/stage"
 mkdir -p "$STAGE/bin" "$STAGE/lib" "$STAGE/share/jetls"
 
 cp bin/jetls "$STAGE/bin/jetls"
@@ -59,7 +58,7 @@ cp "$SYSIMG_PATH" "$STAGE/lib/jetls.so"
 cp "$SNAP_DIR/Project.toml" "$SNAP_DIR/Manifest.toml" "$STAGE/share/jetls/"
 
 ZIP="$WORK/$ASSET_NAME"
-(cd "$WORK" && zip -r "$ZIP" "$STAGE_NAME")
+(cd "$STAGE" && zip -r "$ZIP" .)
 
 if [[ -n "${GITHUB_ACTOR:-}" ]]; then
     git config --local user.email "${GITHUB_ACTOR}@users.noreply.github.com"

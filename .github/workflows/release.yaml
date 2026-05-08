@@ -41,4 +41,4 @@ jobs:
           TMP=$(mktemp -d)
           gh release download "$VERSION" --pattern "$ASSET" --dir "$TMP"
           (cd "$TMP" && unzip -q "$ASSET")
-          "$TMP/jetls-sysimage-${VERSION}-linux-x64/bin/jetls" --version
+          "$TMP/bin/jetls" --version
