@@ -35,7 +35,17 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 SRC_DIR="$WORK/jetls-src"
-SYSIMG_PATH="$WORK/jetls.so"
+case "$PLATFORM_TAG" in
+    win-*)
+        SYSIMG_NAME="jetls.dll"
+        SHIM_NAME="jetls.cmd"
+        ;;
+    *)
+        SYSIMG_NAME="jetls.so"
+        SHIM_NAME="jetls"
+        ;;
+esac
+SYSIMG_PATH="$WORK/$SYSIMG_NAME"
 
 git clone --depth 1 --branch "$VERSION" https://github.com/aviatesk/JETLS.jl "$SRC_DIR"
 
@@ -59,9 +69,9 @@ create_sysimage([:JETLS]; sysimage_path=\"$SYSIMG_PATH\")
 STAGE="$WORK/stage"
 mkdir -p "$STAGE/bin" "$STAGE/lib" "$STAGE/share/jetls"
 
-cp bin/jetls "$STAGE/bin/jetls"
-chmod +x "$STAGE/bin/jetls"
-cp "$SYSIMG_PATH" "$STAGE/lib/jetls.so"
+cp "bin/$SHIM_NAME" "$STAGE/bin/$SHIM_NAME"
+chmod +x "$STAGE/bin/$SHIM_NAME"
+cp "$SYSIMG_PATH" "$STAGE/lib/$SYSIMG_NAME"
 cp "$SNAP_DIR/Project.toml" "$SNAP_DIR/Manifest.toml" "$STAGE/share/jetls/"
 
 ZIP="$WORK/$ASSET_NAME"

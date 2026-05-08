@@ -31,8 +31,16 @@ jobs:
         include:
           - runner: ubuntu-latest
             tag: linux-x64
+            shim: bin/jetls
           - runner: macos-latest
             tag: macos-arm64
+            shim: bin/jetls
+          - runner: windows-latest
+            tag: win-x64
+            shim: bin/jetls.cmd
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v6
 
@@ -56,6 +64,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PLATFORM_TAG: ${{ matrix.tag }}
+          SHIM: ${{ matrix.shim }}
           VERSION_INPUT: ${{ inputs.version }}
         run: |
           set -eu
@@ -64,4 +73,4 @@ jobs:
           TMP=$(mktemp -d)
           gh release download "$VERSION" --pattern "$ASSET" --dir "$TMP"
           (cd "$TMP" && unzip -q "$ASSET")
-          "$TMP/bin/jetls" --version
+          "$TMP/$SHIM" --version
