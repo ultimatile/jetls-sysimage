@@ -27,14 +27,23 @@ fi
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
-ENV_DIR="$WORK/env"
+SRC_DIR="$WORK/jetls-src"
 SYSIMG_PATH="$WORK/jetls.so"
 
-mkdir -p "$ENV_DIR"
+git clone --depth 1 --branch "$VERSION" https://github.com/aviatesk/JETLS.jl "$SRC_DIR"
 
-julia --startup-file=no --project="$ENV_DIR" -e "
+# Resolve JETLS's own deps (its [sources] in Project.toml are honored
+# because we activate the cloned source as the project).
+julia --startup-file=no --project="$SRC_DIR" -e 'using Pkg; Pkg.instantiate()'
+
+# Snapshot Project/Manifest BEFORE adding PackageCompiler so the
+# shipped manifest does not pull in build-time tooling.
+SNAP_DIR="$WORK/snap"
+mkdir -p "$SNAP_DIR"
+cp "$SRC_DIR/Project.toml" "$SRC_DIR/Manifest.toml" "$SNAP_DIR/"
+
+julia --startup-file=no --project="$SRC_DIR" -e "
 using Pkg
-Pkg.add(PackageSpec(url=\"https://github.com/aviatesk/JETLS.jl\", rev=\"$VERSION\"))
 Pkg.add(\"PackageCompiler\")
 using PackageCompiler
 create_sysimage([:JETLS]; sysimage_path=\"$SYSIMG_PATH\")
@@ -47,7 +56,7 @@ mkdir -p "$STAGE/bin" "$STAGE/lib" "$STAGE/share/jetls"
 cp bin/jetls "$STAGE/bin/jetls"
 chmod +x "$STAGE/bin/jetls"
 cp "$SYSIMG_PATH" "$STAGE/lib/jetls.so"
-cp "$ENV_DIR/Project.toml" "$ENV_DIR/Manifest.toml" "$STAGE/share/jetls/"
+cp "$SNAP_DIR/Project.toml" "$SNAP_DIR/Manifest.toml" "$STAGE/share/jetls/"
 
 ZIP="$WORK/$ASSET_NAME"
 (cd "$WORK" && zip -r "$ZIP" "$STAGE_NAME")
