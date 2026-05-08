@@ -10,9 +10,17 @@ permissions:
   contents: write
 
 jobs:
-  release-linux-x64:
-    name: Release linux-x64
-    runs-on: ubuntu-latest
+  release:
+    name: Release ${{ matrix.tag }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            tag: linux-x64
+          - runner: macos-latest
+            tag: macos-arm64
     steps:
       - uses: actions/checkout@v6
 
@@ -23,7 +31,7 @@ jobs:
       - name: Build and upload sysimage
         env:
           GH_TOKEN: ${{ github.token }}
-          PLATFORM_TAG: linux-x64
+          PLATFORM_TAG: ${{ matrix.tag }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             ./scripts/release.sh -f
@@ -34,10 +42,11 @@ jobs:
       - name: Smoke test the published asset
         env:
           GH_TOKEN: ${{ github.token }}
+          PLATFORM_TAG: ${{ matrix.tag }}
         run: |
           set -eu
           VERSION=$(gh release view --repo aviatesk/JETLS.jl --json tagName -q .tagName)
-          ASSET="jetls-sysimage-${VERSION}-linux-x64.zip"
+          ASSET="jetls-sysimage-${VERSION}-${PLATFORM_TAG}.zip"
           TMP=$(mktemp -d)
           gh release download "$VERSION" --pattern "$ASSET" --dir "$TMP"
           (cd "$TMP" && unzip -q "$ASSET")

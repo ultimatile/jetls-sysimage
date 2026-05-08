@@ -65,10 +65,20 @@ if [[ -n "${GITHUB_ACTOR:-}" ]]; then
     git config --local user.name "${GITHUB_ACTOR}"
 fi
 
+# Tag and release creation are idempotent and tolerate concurrent
+# matrix jobs: same commit, force tag, accept that another job may
+# have already created the release.
 git tag -f -a -m "$VERSION" "$VERSION"
-git push -f origin "refs/tags/${VERSION}"
+git push -f origin "refs/tags/${VERSION}" || true
 
-if ! gh release view "$VERSION" >/dev/null 2>&1; then
-    gh release create "$VERSION" --notes "JETLS.jl ${VERSION} sysimage build"
-fi
+for _ in 1 2 3; do
+    if gh release view "$VERSION" >/dev/null 2>&1; then
+        break
+    fi
+    if gh release create "$VERSION" --notes "JETLS.jl ${VERSION} sysimage build" 2>/dev/null; then
+        break
+    fi
+    sleep 5
+done
+
 gh release upload "$VERSION" "$ZIP" --clobber
