@@ -72,11 +72,14 @@ if [[ -n "${GITHUB_ACTOR:-}" ]]; then
     git config --local user.name "${GITHUB_ACTOR}"
 fi
 
-# Tag and release creation are idempotent and tolerate concurrent
-# matrix jobs: same commit, force tag, accept that another job may
-# have already created the release.
-git tag -f -a -m "$VERSION" "$VERSION"
-git push -f origin "refs/tags/${VERSION}" || true
+# Tag creation: pin to whatever commit was checked out the first time
+# we built this version. Skip the push if the tag already exists on
+# origin so the default GITHUB_TOKEN does not need `workflows` write
+# permission for force-pushes that span workflow-file changes.
+if ! git ls-remote --tags origin "refs/tags/${VERSION}" 2>/dev/null | grep -q "refs/tags/${VERSION}$"; then
+    git tag -a -m "$VERSION" "$VERSION"
+    git push origin "refs/tags/${VERSION}" 2>/dev/null || true
+fi
 
 for _ in 1 2 3; do
     if gh release view "$VERSION" >/dev/null 2>&1; then
