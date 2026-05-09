@@ -43,6 +43,11 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Avoid leaving a push-capable token in .git/config that
+          # untrusted upstream code (precompile hooks, build scripts)
+          # could pick up during the sysimage build.
+          persist-credentials: false
 
       - uses: julia-actions/setup-julia@v3
         with:
@@ -53,29 +58,64 @@ jobs:
         shell: pwsh
         run: choco install zip -y --no-progress
 
-      - name: Build and upload sysimage
+      - name: Resolve version and decide whether to build
+        id: decide
         env:
           GH_TOKEN: ${{ github.token }}
-          PLATFORM_TAG: ${{ matrix.tag }}
-          VERSION: ${{ inputs.version }}
-        run: |
-          if [[ "${{ inputs.force }}" == "true" ]]; then
-            ./scripts/release.sh -f
-          else
-            ./scripts/release.sh
-          fi
-
-      - name: Smoke test the published asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PLATFORM_TAG: ${{ matrix.tag }}
-          SHIM: ${{ matrix.shim }}
           VERSION_INPUT: ${{ inputs.version }}
+          FORCE: ${{ inputs.force }}
+          PLATFORM_TAG: ${{ matrix.tag }}
         run: |
           set -eu
           VERSION=${VERSION_INPUT:-$(tr -d '[:space:]' < UPSTREAM_VERSION)}
+          if [[ ! "$VERSION" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "invalid VERSION '$VERSION' (expected YYYY-MM-DD)" >&2
+            exit 1
+          fi
           ASSET="jetls-sysimage-${VERSION}-${PLATFORM_TAG}.zip"
-          TMP=$(mktemp -d)
-          gh release download "$VERSION" --pattern "$ASSET" --dir "$TMP"
-          (cd "$TMP" && unzip -q "$ASSET")
-          "$TMP/$SHIM" --version
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+          if [[ "$FORCE" != "true" ]] && \
+             gh release view "$VERSION" --json assets --jq '.assets[].name' 2>/dev/null \
+             | grep -qx "$ASSET"; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "asset $ASSET already exists; build will be skipped"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build sysimage
+        # No GH_TOKEN: this step clones JETLS.jl and runs Julia
+        # precompile + create_sysimage, which executes upstream code.
+        if: steps.decide.outputs.build == 'true'
+        env:
+          VERSION: ${{ steps.decide.outputs.version }}
+          PLATFORM_TAG: ${{ matrix.tag }}
+        run: ./scripts/build.sh
+
+      - name: Publish release
+        if: steps.decide.outputs.build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.decide.outputs.version }}
+          PLATFORM_TAG: ${{ matrix.tag }}
+        run: ./scripts/publish.sh
+
+      - name: Download published asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.decide.outputs.version }}
+          ASSET: ${{ steps.decide.outputs.asset }}
+        run: |
+          set -eu
+          rm -rf .smoke && mkdir .smoke
+          gh release download "$VERSION" --pattern "$ASSET" --dir .smoke
+          (cd .smoke && unzip -q "$ASSET")
+
+      - name: Smoke test the published asset
+        # No GH_TOKEN: this step executes the just-downloaded shim and
+        # sysimage, which originate from upstream code.
+        env:
+          SHIM: ${{ matrix.shim }}
+        run: |
+          ./.smoke/"$SHIM" --version
