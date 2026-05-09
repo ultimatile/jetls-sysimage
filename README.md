@@ -1,6 +1,6 @@
 # jetls-sysimage
 
-Pre-built [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) sysimages of [aviatesk/JETLS.jl](https://github.com/aviatesk/JETLS.jl) for [mason.nvim](https://github.com/mason-org/mason.nvim) consumption via [ultimatile/mason-jetls-registry](https://github.com/ultimatile/mason-jetls-registry).
+Pre-built [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) sysimages of [aviatesk/JETLS.jl](https://github.com/aviatesk/JETLS.jl) so the language server starts without paying its precompile cost on every launch.
 
 ## What's published
 
