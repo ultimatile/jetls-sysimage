@@ -68,7 +68,10 @@ julia --startup-file=no --project="$SRC_DIR" -e "
 using Pkg
 Pkg.add(\"PackageCompiler\")
 using PackageCompiler
-create_sysimage([:JETLS]; sysimage_path=\"$SYSIMG_PATH\")
+# default_app_cpu_target emits a multi-target sysimage so it loads on
+# CPUs older or different from the build runner (we hit this on
+# Windows: a znver4-only image was rejected on a non-Zen4 test box).
+create_sysimage([:JETLS]; sysimage_path=\"$SYSIMG_PATH\", cpu_target=default_app_cpu_target())
 "
 
 STAGE="$WORK/stage"
