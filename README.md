@@ -29,6 +29,6 @@ share/jetls/{Project,Manifest}.toml
 1. Renovate watches `aviatesk/JETLS.jl` and bumps `UPSTREAM_VERSION` in this repo when a new tag appears.
 2. Merging the bump PR pushes to `main`, triggering [`.github/workflows/release.yaml`](./.github/workflows/release.yaml) on the matching path filter.
 3. The workflow builds and publishes in two isolated jobs per platform:
-   - `build` runs [`scripts/build.sh`](./scripts/build.sh) — clones JETLS.jl at the pinned tag and builds a `cpu_target="generic"` sysimage. It runs untrusted upstream code with a read-only token and uploads the zip as an artifact.
-   - `publish` runs [`scripts/publish.sh`](./scripts/publish.sh) on a fresh runner, downloads that artifact, and uploads it to the release under the same tag. Splitting jobs keeps the write token away from any runner that executed upstream code.
+   - `build` runs [`scripts/build.sh`](./scripts/build.sh) — clones JETLS.jl at the pinned tag, builds a `cpu_target="generic"` sysimage, and smoke-tests it. It executes untrusted upstream code with only a read-only token and uploads the zip as an artifact.
+   - `publish` runs [`scripts/publish.sh`](./scripts/publish.sh) on a fresh runner — it downloads that artifact and uploads it to the release under the same tag, executing no upstream code. Keeping the build on a separate runner means the write token never shares a machine with untrusted upstream code.
 4. Manual builds are also available via `gh workflow run release.yaml -f version=<tag> -f force=true`.
