@@ -1,0 +1,25 @@
+---
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint and test scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Shellcheck scripts
+        run: shellcheck scripts/*.sh
+
+      - name: decide.sh contract tests
+        run: ./scripts/decide_test.sh
