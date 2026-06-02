@@ -75,28 +75,34 @@ if run_decide; then fail "rejects VERSION with trailing metacharacters"; else pa
 t_version="2026-5-1" t_force="" t_assets=""
 if run_decide; then fail "rejects loosely formatted date"; else pass "rejects loosely formatted date"; fi
 
+# A deliberately arbitrary fixture version. It is NOT the live
+# UPSTREAM_VERSION (which Renovate bumps) — the contract under test only
+# cares that the value is well-formed YYYY-MM-DD, so the Unix epoch date
+# reads unmistakably as a placeholder rather than a real release tag.
+FIXTURE_VERSION="1970-01-01"
+
 # 2. Existing asset, no force -> skip, with correct version/asset echoed.
-t_version="2026-05-27" t_force="" t_tag="linux-x64"
-t_assets="jetls-sysimage-2026-05-27-linux-x64.zip"
+t_version="$FIXTURE_VERSION" t_force="" t_tag="linux-x64"
+t_assets="jetls-sysimage-$FIXTURE_VERSION-linux-x64.zip"
 run_decide || fail "valid VERSION exits 0"
-assert_line "version=2026-05-27" "echoes resolved version"
-assert_line "asset=jetls-sysimage-2026-05-27-linux-x64.zip" "echoes platform asset name"
+assert_line "version=$FIXTURE_VERSION" "echoes resolved version"
+assert_line "asset=jetls-sysimage-$FIXTURE_VERSION-linux-x64.zip" "echoes platform asset name"
 assert_line "proceed=false" "existing asset without force -> proceed=false"
 
 # 3a. Missing release -> must produce the asset.
-t_version="2026-05-27" t_force="" t_tag="linux-x64" t_assets=""
+t_version="$FIXTURE_VERSION" t_force="" t_tag="linux-x64" t_assets=""
 run_decide || fail "valid VERSION exits 0 (missing release)"
 assert_line "proceed=true" "missing release -> proceed=true"
 
 # 3b. Release exists but lacks this platform's asset -> must produce it.
-t_version="2026-05-27" t_force="" t_tag="linux-x64"
-t_assets="jetls-sysimage-2026-05-27-win-x64.zip"
+t_version="$FIXTURE_VERSION" t_force="" t_tag="linux-x64"
+t_assets="jetls-sysimage-$FIXTURE_VERSION-win-x64.zip"
 run_decide || fail "valid VERSION exits 0 (other-platform asset present)"
 assert_line "proceed=true" "asset for another platform present -> proceed=true"
 
 # 4. Existing asset but FORCE=true -> rebuild/republish.
-t_version="2026-05-27" t_force="true" t_tag="linux-x64"
-t_assets="jetls-sysimage-2026-05-27-linux-x64.zip"
+t_version="$FIXTURE_VERSION" t_force="true" t_tag="linux-x64"
+t_assets="jetls-sysimage-$FIXTURE_VERSION-linux-x64.zip"
 run_decide || fail "valid VERSION exits 0 (forced)"
 assert_line "proceed=true" "existing asset with force -> proceed=true"
 
