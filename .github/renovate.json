@@ -34,7 +34,10 @@
         "aviatesk/JETLS.jl"
       ],
       "commitMessageTopic": "JETLS.jl",
-      "commitMessageExtra": "to {{newValue}}"
+      "commitMessageExtra": "to {{newValue}}",
+      "minimumReleaseAge": "3 days",
+      "minimumReleaseAgeBehaviour": "timestamp-required",
+      "internalChecksFilter": "strict"
     }
   ]
 }
