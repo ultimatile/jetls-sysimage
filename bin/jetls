@@ -9,6 +9,27 @@ fi
 
 : "${JULIA_BIN:=julia}"
 
+# The sysimage links against libjulia.<major>.<minor> and loads on nothing
+# else. Left to Julia, a mismatch surfaces as a raw dlopen error naming a
+# library the reader has no reason to connect to their Julia version, so name
+# it here instead. This goes to stderr: stdout carries the LSP stream.
+# Only major.minor is compared, since that is what the soname pins. A missing
+# file means a partial or hand-assembled tree rather than a known-bad pairing,
+# so leave that case to Julia instead of inventing a new failure for it.
+VERSION_FILE="$PKG_ROOT/share/jetls/JULIA_VERSION"
+if [[ -f $VERSION_FILE ]]; then
+    # $(<file), not `read` from it: the file carries no trailing newline, so a
+    # `read` would report EOF and trip `set -e`.
+    IFS=. read -r WANT_MAJOR WANT_MINOR _ <<<"$(<"$VERSION_FILE")"
+    HAVE=$("$JULIA_BIN" --version)
+    IFS=. read -r HAVE_MAJOR HAVE_MINOR _ <<<"${HAVE##* }"
+    if [[ $WANT_MAJOR.$WANT_MINOR != "$HAVE_MAJOR.$HAVE_MINOR" ]]; then
+        echo "jetls: this build needs Julia $WANT_MAJOR.$WANT_MINOR, but '$JULIA_BIN' is $HAVE_MAJOR.$HAVE_MINOR" >&2
+        echo "jetls: install Julia $WANT_MAJOR.$WANT_MINOR, or point JULIA_BIN at it" >&2
+        exit 1
+    fi
+fi
+
 export JULIA_DEPOT_PATH="${JETLS_DEPOT:-$PKG_ROOT/store}"
 
 exec "$JULIA_BIN" \

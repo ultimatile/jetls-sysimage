@@ -18,8 +18,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Shellcheck scripts
-        run: shellcheck scripts/*.sh
+      - name: Shellcheck scripts and the POSIX shim
+        # bin/jetls ships to users and now carries branching logic of its own,
+        # so it belongs under the same linter as scripts/. bin/jetls.cmd has no
+        # equivalent check here; the release smoke test exercises it on Windows.
+        run: shellcheck scripts/*.sh bin/jetls
 
       - name: decide.sh contract tests
         run: ./scripts/decide_test.sh
