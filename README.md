@@ -18,11 +18,12 @@ Each zip contains:
 bin/jetls{,.cmd}        # shim that launches julia with the sysimage
 lib/jetls.{so,dll}      # PackageCompiler-built sysimage
 share/jetls/{Project,Manifest}.toml
+share/jetls/JULIA_VERSION            # exact Julia the sysimage was built with
 ```
 
 ## Requirements at runtime
 
-- Julia 1.12.x in `PATH` (override with `JULIA_BIN`). Sysimages are built on 1.12.6; loading on a different patch may fail.
+- Julia 1.13.x in `PATH` (override with `JULIA_BIN`). Each zip records the exact patch it was built with in `share/jetls/JULIA_VERSION`; loading on a different patch may fail.
 
 ## How releases happen
 
