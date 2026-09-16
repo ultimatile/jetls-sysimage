@@ -70,6 +70,14 @@ chmod +x "$STAGE/bin/$SHIM_NAME"
 cp "$SYSIMG_PATH" "$STAGE/lib/$SYSIMG_NAME"
 cp "$SNAP_DIR/Project.toml" "$SNAP_DIR/Manifest.toml" "$STAGE/share/jetls/"
 
+# Record the Julia that built this sysimage, so a consumer can pick a matching
+# one: a sysimage links against libjulia.<major>.<minor> and will not load on
+# anything else. The manifest shipped next to this cannot stand in for it —
+# Pkg.instantiate() leaves julia_version at whatever resolved the manifest and
+# only warns on a mismatch, so it would report upstream's resolver version if
+# JETLS.jl ever starts committing a Manifest.toml.
+julia --startup-file=no -e 'print(VERSION)' > "$STAGE/share/jetls/JULIA_VERSION"
+
 ZIP_ABS="$PWD/$WORK/$ASSET_NAME"
 (cd "$STAGE" && zip -r "$ZIP_ABS" .)
 

@@ -100,6 +100,17 @@ jobs:
           rm -rf .smoke && mkdir .smoke
           unzip -q "build/$ASSET" -d .smoke
           ./.smoke/"$SHIM" --version
+          # Gate the recorded build Julia at the packaged boundary, since a
+          # consumer selects its Julia from this value: a missing or malformed
+          # one must fail here rather than ship. Only a concrete release is
+          # accepted, because setup-julia's version input also takes selectors
+          # like `nightly` that would quietly resolve to something else.
+          BUILT_WITH=$(cat .smoke/share/jetls/JULIA_VERSION)
+          if [[ ! "$BUILT_WITH" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "unexpected JULIA_VERSION: $BUILT_WITH" >&2
+            exit 1
+          fi
+          echo "sysimage built with Julia $BUILT_WITH"
 
       - name: Upload sysimage artifact
         if: steps.decide.outputs.proceed == 'true'
