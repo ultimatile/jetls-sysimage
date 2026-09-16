@@ -38,6 +38,17 @@
       "minimumReleaseAge": "3 days",
       "minimumReleaseAgeBehaviour": "timestamp-required",
       "internalChecksFilter": "strict"
+    },
+    {
+      "description": [
+        "setup-julia's `version:` input accepts a partial version and resolves it to the newest matching release at run time, so `1.13` keeps picking up 1.13.x patches without a PR.",
+        "Renovate's built-in julia-actions/setup-julia rule sets no extractVersion, so the raw tag (`v1.13.0`) would land in the workflow and pin the patch. Capturing major.minor restores the original granularity.",
+        "The trailing `\\.\\d+$` is what excludes prereleases: `v1.13.0-rc4` must not match, or it would be rewritten to a stable-looking `1.13` (non-matching releases are dropped, not passed through)."
+      ],
+      "matchDepNames": [
+        "julia"
+      ],
+      "extractVersion": "^v(?<version>\\d+\\.\\d+)\\.\\d+$"
     }
   ]
 }
