@@ -45,13 +45,19 @@ git clone --depth 1 --branch "$VERSION" https://github.com/aviatesk/JETLS.jl "$S
 # because we activate the cloned source as the project).
 julia --startup-file=no --project="$SRC_DIR" -e 'using Pkg; Pkg.instantiate()'
 
-# Snapshot Project/Manifest BEFORE adding PackageCompiler so the
-# shipped manifest does not pull in build-time tooling.
+# Snapshot Project/Manifest before the sysimage build, so the shipped pair
+# is as Pkg.instantiate() left it whatever the build does to the project
+# afterwards.
 SNAP_DIR="$WORK/snap"
 mkdir -p "$SNAP_DIR"
 cp "$SRC_DIR/Project.toml" "$SRC_DIR/Manifest.toml" "$SNAP_DIR/"
 
-julia --startup-file=no --project="$SRC_DIR" -e "
+# PackageCompiler lives in its own environment and is pointed at the JETLS
+# project. Adding it to that project instead would make the build depend on
+# Pkg re-resolving upstream's environment.
+PC_ENV="$WORK/pc-env"
+
+julia --startup-file=no --project="$PC_ENV" -e "
 using Pkg
 Pkg.add(\"PackageCompiler\")
 using PackageCompiler
@@ -59,7 +65,7 @@ using PackageCompiler
 # same arch. The richer default_app_cpu_target() emits a multi-target
 # image with clone_all that doubles or triples LLVM IR memory and
 # OOM-kills the 16GB ubuntu-latest runner mid-compile.
-create_sysimage([:JETLS]; sysimage_path=\"$SYSIMG_PATH\", cpu_target=\"generic\")
+create_sysimage([:JETLS]; project=abspath(\"$SRC_DIR\"), sysimage_path=\"$SYSIMG_PATH\", cpu_target=\"generic\")
 "
 
 STAGE="$WORK/stage"
