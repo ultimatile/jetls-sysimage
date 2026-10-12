@@ -45,12 +45,16 @@ git clone --depth 1 --branch "$VERSION" https://github.com/aviatesk/JETLS.jl "$S
 # because we activate the cloned source as the project).
 julia --startup-file=no --project="$SRC_DIR" -e 'using Pkg; Pkg.instantiate()'
 
+# Snapshot Project/Manifest before the sysimage build, so the shipped pair
+# is as Pkg.instantiate() left it whatever the build does to the project
+# afterwards.
+SNAP_DIR="$WORK/snap"
+mkdir -p "$SNAP_DIR"
+cp "$SRC_DIR/Project.toml" "$SRC_DIR/Manifest.toml" "$SNAP_DIR/"
+
 # PackageCompiler lives in its own environment and is pointed at the JETLS
-# project, rather than being added to it. Adding it would re-resolve the
-# JETLS workspace, which Pkg cannot do once the manifest exists: upstream's
-# workspace holds LSP/ and TOMLSource/ next to vendored packages of the same
-# names, and Pkg applies the root [sources] entry to both by name. It also
-# keeps build-time tooling out of the manifest shipped below.
+# project. Adding it to that project instead would make the build depend on
+# Pkg re-resolving upstream's environment.
 PC_ENV="$WORK/pc-env"
 
 julia --startup-file=no --project="$PC_ENV" -e "
@@ -61,7 +65,7 @@ using PackageCompiler
 # same arch. The richer default_app_cpu_target() emits a multi-target
 # image with clone_all that doubles or triples LLVM IR memory and
 # OOM-kills the 16GB ubuntu-latest runner mid-compile.
-create_sysimage([:JETLS]; project=\"$SRC_DIR\", sysimage_path=\"$SYSIMG_PATH\", cpu_target=\"generic\")
+create_sysimage([:JETLS]; project=abspath(\"$SRC_DIR\"), sysimage_path=\"$SYSIMG_PATH\", cpu_target=\"generic\")
 "
 
 STAGE="$WORK/stage"
@@ -70,7 +74,7 @@ mkdir -p "$STAGE/bin" "$STAGE/lib" "$STAGE/share/jetls"
 cp "bin/$SHIM_NAME" "$STAGE/bin/$SHIM_NAME"
 chmod +x "$STAGE/bin/$SHIM_NAME"
 cp "$SYSIMG_PATH" "$STAGE/lib/$SYSIMG_NAME"
-cp "$SRC_DIR/Project.toml" "$SRC_DIR/Manifest.toml" "$STAGE/share/jetls/"
+cp "$SNAP_DIR/Project.toml" "$SNAP_DIR/Manifest.toml" "$STAGE/share/jetls/"
 
 # Record the Julia that built this sysimage, so a consumer can pick a matching
 # one: a sysimage links against libjulia.<major>.<minor> and will not load on
