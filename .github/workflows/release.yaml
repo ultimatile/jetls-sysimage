@@ -127,7 +127,9 @@ jobs:
   # decouples it from a sibling platform's build failure, and it
   # re-derives the same decision as the build job so a missing artifact
   # for a platform that was supposed to build hard-fails instead of
-  # being mistaken for an intentional skip.
+  # being mistaken for an intentional skip. max-parallel: 1 serializes
+  # the legs because publish.sh creates the release with a non-atomic
+  # view-then-create.
   publish:
     name: Publish ${{ matrix.tag }}
     needs: build
@@ -137,6 +139,7 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         tag: [linux-x64, macos-arm64, win-x64]
     defaults:

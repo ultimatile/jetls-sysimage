@@ -25,19 +25,14 @@ if [[ ! -f "$ZIP" ]]; then
     exit 1
 fi
 
-# Race-tolerant create-or-accept: parallel matrix jobs may both try
-# to create the release for the same tag. `gh release create` also
+# This view-then-create is not atomic: two concurrent callers can each
+# create a release for the same tag, so the workflow must run the
+# per-platform publish jobs one at a time. `gh release create` also
 # creates the underlying tag at the current HEAD if it does not yet
 # exist, so we do not need a separate `git push` of the tag (which
 # would otherwise need workflows-write permission to span CI changes).
-for _ in 1 2 3; do
-    if gh release view "$VERSION" >/dev/null 2>&1; then
-        break
-    fi
-    if gh release create "$VERSION" --notes "JETLS.jl ${VERSION} sysimage build" 2>/dev/null; then
-        break
-    fi
-    sleep 5
-done
+if ! gh release view "$VERSION" >/dev/null 2>&1; then
+    gh release create "$VERSION" --notes "JETLS.jl ${VERSION} sysimage build"
+fi
 
 gh release upload "$VERSION" "$ZIP" --clobber
